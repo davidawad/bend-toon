@@ -57,20 +57,6 @@ def all_zeros(+s: String) -> Bool:
     case SCon{c, t}:
       is_zero_char(c) && all_zeros(t)
 
-def starts_zero(+s: String) -> Bool:
-  match s:
-    case SNil{}:
-      False{}
-    case SCon{c, t}:
-      is_zero_char(c)
-
-def drop1(+s: String) -> String:
-  match s:
-    case SNil{}:
-      SNil{}
-    case SCon{c, t}:
-      t
-
 def num.opt(+ok: Bool, +n: Num) -> Maybe<&2, Num>:
   match ok:
     case True{}:

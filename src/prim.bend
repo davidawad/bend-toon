@@ -7,9 +7,6 @@ import ./text.bend as T
 # Primitive tokens (spec section 4 and appendix B.4): quoted string, true,
 # false, null, number, or bare string.
 
-def fail(+m: String) -> Result<&2, &2, String, J.Json>:
-  Fail{m}
-
 def quoted.rest(+ok: Bool, +v: String) -> Result<&2, &2, String, J.Json>:
   match ok:
     case True{}:

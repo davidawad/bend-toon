@@ -56,10 +56,6 @@ def split.go(+s: String, +d: U32, +st: U32) -> List<&2, String>:
 def split(+s: String, +d: U32) -> List<&2, String>:
   split.go(s, d, 0)
 
-# True when the string has an unquoted occurrence of `target`.
-def has_unq(+s: String, +target: U32) -> Bool:
-  Bool.not(U32.is_eq(find_unq(s, target, 0, 0), none()))
-
 # Index of the first `target`, ignoring quotes, or `none()`.
 def find(+s: String, +target: U32, +i: U32) -> U32:
   match s:
