@@ -7,6 +7,7 @@ import ./entry.bend as E
 import ./dline.bend as D
 import ./frame.bend as F
 import ./step.bend as T
+import ./head.bend as Hd
 
 # Decoder (spec sections 4, 5, 12 to 14): lines to a Json value.
 
@@ -117,12 +118,15 @@ def root.hdr(+r: Result<&2, &2, String, H.Hdr>, +one: Bool, +text: String, +all:
     case Fail{e}:
       root.other(one, text, all, strict)
 
-def header.try(+depth: U32, +text: String) -> Result<&2, &2, String, H.Hdr>:
-  match depth text:
-    case 0 SCon{Chr{91}, t}:
+def header.try.pick(+root: Bool, +text: String) -> Result<&2, &2, String, H.Hdr>:
+  match root:
+    case True{}:
       H.parse(text)
-    case _ _:
+    case False{}:
       Fail{"not a root header"}
+
+def header.try(+depth: U32, +text: String) -> Result<&2, &2, String, H.Hdr>:
+  header.try.pick(U32.is_zero(depth) && Hd.lead(text, 91), text)
 
 def start.first(+l: D.DL, +rest: List<&2, D.DL>, +strict: Bool) -> Result<&2, &2, String, J.Json>:
   match l:

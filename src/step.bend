@@ -6,6 +6,7 @@ import ./hdr.bend as H
 import ./entry.bend as E
 import ./dline.bend as D
 import ./frame.bend as F
+import ./head.bend as Hd
 
 # One content line applied to the decoder state (spec sections 8 to 10).
 
@@ -113,14 +114,17 @@ def obj.line(+r: Result<&2, &2, String, E.Ent>, +dp: U32, +a: F.Att, +fs: J.Json
 
 # ---- list lines --------------------------------------------------------------------
 
-def hyphen(+text: String) -> Item:
-  match text:
-    case SCon{Chr{45}, SNil{}}:
+def hyphen.pick(+bare: Bool, +spaced: Bool, +text: String) -> Item:
+  match bare spaced:
+    case True{} _:
       IEmpty{}
-    case SCon{Chr{45}, SCon{Chr{32}, t}}:
-      IText{String.trim(t)}
-    case _:
+    case False{} True{}:
+      IText{String.trim(Hd.drop(Hd.drop(text)))}
+    case False{} False{}:
       IBad{}
+
+def hyphen(+text: String) -> Item:
+  hyphen.pick(String.eq(text, "-"), Hd.lead2(text, 45, 32), text)
 
 def lst.push(+v: J.Json, +dp: U32, +a: F.Att, +n: U32, +c: U32, +xs: J.Json, +rest: List<&2, F.Fr>, +root: Maybe<&2, J.Json>, +bmin: U32) -> Result<&2, &2, String, F.St>:
   Done{F.St{Con{F.FLst{dp, a, n, (c + 1 : U32), J.JCons{v, xs}}, rest}, root, bmin}}

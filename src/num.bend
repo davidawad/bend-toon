@@ -1,4 +1,5 @@
 import Base
+import ./head.bend as Hd
 
 # Decimal text to TOON canonical decimal text, on strings only (no floats, so
 # any number of digits is exact).
@@ -13,6 +14,14 @@ import Base
 
 type Sp is Data:
   Sp{a: String, b: String}
+
+# A parsed number: sign, integer digits, fraction digits, exponent as a
+# biased-free signed pair.
+type Num is Data:
+  Num{neg: Bool, ip: String, fp: String, eneg: Bool, ex: String}
+
+type Sp2 is Data:
+  Sp2{d: String, p: U32}
 
 def bias() -> U32:
   2147483648
@@ -62,11 +71,6 @@ def drop1(+s: String) -> String:
     case SCon{c, t}:
       t
 
-# A parsed number: sign, integer digits, fraction digits, exponent as a
-# biased-free signed pair.
-type Num is Data:
-  Num{neg: Bool, ip: String, fp: String, eneg: Bool, ex: String}
-
 def num.opt(+ok: Bool, +n: Num) -> Maybe<&2, Num>:
   match ok:
     case True{}:
@@ -83,27 +87,31 @@ def exp.done(+neg: Bool, +ip: String, +fp: String, +eneg: Bool, +r: Sp) -> Maybe
 def exp.sign(+neg: Bool, +ip: String, +fp: String, +eneg: Bool, +s: String) -> Maybe<&2, Num>:
   exp.done(neg, ip, fp, eneg, span_digits(s))
 
+def exp.part.pick(+plus: Bool, +minus: Bool, +neg: Bool, +ip: String, +fp: String, +s: String) -> Maybe<&2, Num>:
+  match plus minus:
+    case True{} _:
+      exp.sign(neg, ip, fp, False{}, Hd.drop(s))
+    case False{} True{}:
+      exp.sign(neg, ip, fp, True{}, Hd.drop(s))
+    case False{} False{}:
+      exp.sign(neg, ip, fp, False{}, s)
+
 # After `e`: an optional sign, then digits.
 def exp.part(+neg: Bool, +ip: String, +fp: String, +s: String) -> Maybe<&2, Num>:
-  match s:
-    case SCon{Chr{43}, t}:
-      exp.sign(neg, ip, fp, False{}, t)
-    case SCon{Chr{45}, t}:
-      exp.sign(neg, ip, fp, True{}, t)
-    case _:
-      exp.sign(neg, ip, fp, False{}, s)
+  exp.part.pick(Hd.lead(s, 43), Hd.lead(s, 45), neg, ip, fp, s)
+
+def frac.rest.pick(+empty: Bool, +e: Bool, +neg: Bool, +ip: String, +fp: String, +s: String) -> Maybe<&2, Num>:
+  match empty e:
+    case True{} _:
+      Some{Num{neg, ip, fp, False{}, "0"}}
+    case False{} True{}:
+      exp.part(neg, ip, fp, Hd.drop(s))
+    case False{} False{}:
+      None{}
 
 # After the fraction: end of text or an exponent.
 def frac.rest(+neg: Bool, +ip: String, +fp: String, +s: String) -> Maybe<&2, Num>:
-  match s:
-    case SNil{}:
-      Some{Num{neg, ip, fp, False{}, "0"}}
-    case SCon{Chr{101}, t}:
-      exp.part(neg, ip, fp, t)
-    case SCon{Chr{69}, t}:
-      exp.part(neg, ip, fp, t)
-    case _:
-      None{}
+  frac.rest.pick(String.is_empty(s), Hd.lead(s, 101) || Hd.lead(s, 69), neg, ip, fp, s)
 
 def frac.digits(+neg: Bool, +ip: String, +r: Sp) -> Maybe<&2, Num>:
   match r:
@@ -114,13 +122,16 @@ def frac.digits(+neg: Bool, +ip: String, +r: Sp) -> Maybe<&2, Num>:
         case _:
           frac.rest(neg, ip, ds, rest)
 
+def int.rest.pick(+dot: Bool, +neg: Bool, +ip: String, +s: String) -> Maybe<&2, Num>:
+  match dot:
+    case True{}:
+      frac.digits(neg, ip, span_digits(Hd.drop(s)))
+    case False{}:
+      frac.rest(neg, ip, SNil{}, s)
+
 # After the integer digits: a fraction, an exponent, or the end.
 def int.rest(+neg: Bool, +ip: String, +s: String) -> Maybe<&2, Num>:
-  match s:
-    case SCon{Chr{46}, t}:
-      frac.digits(neg, ip, span_digits(t))
-    case _:
-      frac.rest(neg, ip, SNil{}, s)
+  int.rest.pick(Hd.lead(s, 46), neg, ip, s)
 
 def int.digits(+neg: Bool, +r: Sp) -> Maybe<&2, Num>:
   match r:
@@ -131,13 +142,16 @@ def int.digits(+neg: Bool, +r: Sp) -> Maybe<&2, Num>:
         case _:
           int.rest(neg, ds, rest)
 
+def split.pick(+minus: Bool, +s: String) -> Maybe<&2, Num>:
+  match minus:
+    case True{}:
+      int.digits(True{}, span_digits(Hd.drop(s)))
+    case False{}:
+      int.digits(False{}, span_digits(s))
+
 # `-?digits(.digits)?([eE][+-]?digits)?`, as parts.
 def split(+s: String) -> Maybe<&2, Num>:
-  match s:
-    case SCon{Chr{45}, t}:
-      int.digits(True{}, span_digits(t))
-    case _:
-      int.digits(False{}, span_digits(s))
+  split.pick(Hd.lead(s, 45), s)
 
 # ---- value to canonical text -----------------------------------------------------
 
@@ -146,9 +160,6 @@ def zeros(+k: U32) -> String:
 
 def len32(+s: String) -> U32:
   U32.from_nat(String.length(s))
-
-type Sp2 is Data:
-  Sp2{d: String, p: U32}
 
 def lead.pick(+z: Bool, +d: String, +p: U32, +r: Sp2) -> Sp2:
   match z:
@@ -289,4 +300,3 @@ def canon.opt(+m: Maybe<&2, Num>) -> Maybe<&2, String>:
 # Canonical text of a decimal number, None when `s` is not one.
 def canon(+s: String) -> Maybe<&2, String>:
   canon.opt(split(s))
-

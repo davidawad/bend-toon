@@ -77,20 +77,25 @@ def bool.eq(+a: Bool, +b: Bool) -> Bool:
     case _ _:
       False{}
 
-def prim.eq(+a: Json, +b: Json) -> Bool:
+def lit.eq(+a: Json, +b: Json) -> Bool:
   match a b:
     case JNull{} JNull{}:
       True{}
     case JBool{x} JBool{y}:
       bool.eq(x, y)
-    case JNum{x} JNum{y}:
-      num.eq(N.canon(x), N.canon(y))
-    case JStr{x} JStr{y}:
-      String.eq(x, y)
     case JNil{} JNil{}:
       True{}
     case _ _:
       False{}
+
+def prim.eq(+a: Json, +b: Json) -> Bool:
+  match a b:
+    case JNum{x} JNum{y}:
+      num.eq(N.canon(x), N.canon(y))
+    case JStr{x} JStr{y}:
+      String.eq(x, y)
+    case _ _:
+      lit.eq(a, b)
 
 # JSON-model equality (spec section 2): same shape, same ordered keys, numbers
 # equal by value (`1.0` equals `1`), strings equal by code points.

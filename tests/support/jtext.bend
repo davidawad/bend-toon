@@ -1,7 +1,7 @@
 import Base
-import ./json.bend as J
-import ./num.bend as N
-import ./text.bend as T
+import ../../src/json.bend as J
+import ../../src/num.bend as N
+import ../../src/text.bend as T
 
 # JSON text to Json and back, for the CLI and the conformance runner.
 #

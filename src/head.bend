@@ -4,7 +4,7 @@ import Base
 # (a numeric pattern expands to a match per bit, which the linter counts).
 
 # Is the first character the code point `c`?
-def is(+s: String, +c: U32) -> Bool:
+def lead(+s: String, +c: U32) -> Bool:
   match s:
     case SNil{}:
       False{}
@@ -20,8 +20,8 @@ def drop(+s: String) -> String:
       t
 
 # Are the first two characters `a` then `b`?
-def is2(+s: String, +a: U32, +b: U32) -> Bool:
-  is(s, a) && is(drop(s), b)
+def lead2(+s: String, +a: U32, +b: U32) -> Bool:
+  lead(s, a) && lead(drop(s), b)
 
 # Has the string at least `n` characters?
 def at_least(+s: String, +n: Nat) -> Bool:

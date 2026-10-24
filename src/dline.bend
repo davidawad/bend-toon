@@ -1,4 +1,5 @@
 import Base
+import ./head.bend as Hd
 
 # Source text to numbered lines with their depth (spec section 12).
 
@@ -9,14 +10,30 @@ type DL is Data:
 type Ld is Data:
   Ld{sp: U32, tabs: U32, rest: String}
 
-def lead(+s: String, +sp: U32, +tabs: U32) -> Ld:
-  match s:
-    case SCon{Chr{32}, t}:
-      lead(t, (sp + 1 : U32), tabs)
-    case SCon{Chr{9}, t}:
-      lead(t, sp, (tabs + 1 : U32))
-    case _:
+def lead.pick(+go: Bool, +s: String, +sp: U32, +tabs: U32, +r: Ld) -> Ld:
+  match go:
+    case True{}:
+      r
+    case False{}:
       Ld{sp, tabs, s}
+
+def inc(+b: Bool) -> U32:
+  match b:
+    case True{}:
+      1
+    case False{}:
+      0
+
+# Count the leading spaces and tabs. `live` is true until the first other
+# character; the recursion runs to the end of the line but only counts
+# while live.
+def lead(+s: String, +sp: U32, +tabs: U32, +live: Bool) -> Ld:
+  match s:
+    case SNil{}:
+      Ld{sp, tabs, s}
+    case SCon{Chr{c}, t}:
+      lead.pick(live && (U32.is_eq(c, 32) || U32.is_eq(c, 9)), s, sp, tabs,
+        lead(t, (sp + inc(live && U32.is_eq(c, 32)) : U32), (tabs + inc(live && U32.is_eq(c, 9)) : U32), live && (U32.is_eq(c, 32) || U32.is_eq(c, 9))))
 
 def at(+no: U32, +m: String) -> String:
   "line " ++ U32.show(no) ++ ": " ++ m
@@ -55,7 +72,7 @@ def make.of(+no: U32, +l: Ld, +size: U32, +strict: Bool) -> Result<&2, &2, Strin
       make.pick(String.is_empty(String.trim(rest)), no, Ld{sp, tabs, rest}, size, strict)
 
 def make(+no: U32, +line: String, +size: U32, +strict: Bool) -> Result<&2, &2, String, DL>:
-  make.of(no, lead(line, 0, 0), size, strict)
+  make.of(no, lead(line, 0, 0, True{}), size, strict)
 
 def prep.cons(+r: Result<&2, &2, String, DL>, +rest: Result<&2, &2, String, List<&2, DL>>) -> Result<&2, &2, String, List<&2, DL>>:
   match r rest:

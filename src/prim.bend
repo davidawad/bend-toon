@@ -1,6 +1,7 @@
 import Base
 import ./json.bend as J
 import ./num.bend as N
+import ./head.bend as Hd
 import ./text.bend as T
 
 # Primitive tokens (spec section 4 and appendix B.4): quoted string, true,
@@ -26,11 +27,14 @@ def quoted.end(+r: Result<&2, &2, String, T.Cut>) -> Result<&2, &2, String, J.Js
 
 # A forbidden leading zero: an integer part of two or more digits starting
 # with 0 (`05`, `-007`), which stays a string. `0`, `0.5`, `0e1` are numbers.
+def lead0.ip(+ip: String) -> Bool:
+  Hd.lead(ip, 48) && Hd.at_least(ip, 2n)
+
 def lead0(+m: Maybe<&2, N.Num>) -> Bool:
   match m:
-    case Some{N.Num{neg, SCon{Chr{48}, SCon{c, t}}, fp, eneg, ex}}:
-      True{}
-    case _:
+    case Some{N.Num{neg, ip, fp, eneg, ex}}:
+      lead0.ip(ip)
+    case None{}:
       False{}
 
 def num.pick(+ok: Bool, +c: Maybe<&2, String>, +tok: String) -> J.Json:
@@ -58,13 +62,16 @@ def bare.pick(+t: Bool, +f: Bool, +n: Bool, +tok: String) -> J.Json:
 def bare(+tok: String) -> J.Json:
   bare.pick(String.eq(tok, "true"), String.eq(tok, "false"), String.eq(tok, "null"), tok)
 
+def parse.pick(+quoted: Bool, +tok: String) -> Result<&2, &2, String, J.Json>:
+  match quoted:
+    case True{}:
+      quoted.end(T.unq(Hd.drop(tok)))
+    case False{}:
+      Done{bare(tok)}
+
 # A trimmed token as a value.
 def parse(+tok: String) -> Result<&2, &2, String, J.Json>:
-  match tok:
-    case SCon{Chr{34}, t}:
-      quoted.end(T.unq(t))
-    case _:
-      Done{bare(tok)}
+  parse.pick(Hd.lead(tok, 34), tok)
 
 def key.rest(+ok: Bool, +v: String) -> Result<&2, &2, String, String>:
   match ok:
@@ -73,7 +80,6 @@ def key.rest(+ok: Bool, +v: String) -> Result<&2, &2, String, String>:
     case False{}:
       Fail{"unexpected characters after the closing quote"}
 
-# A trimmed key token: quoted keys are unescaped, bare ones kept as written.
 def key.end(+r: Result<&2, &2, String, T.Cut>) -> Result<&2, &2, String, String>:
   match r:
     case Fail{e}:
@@ -81,12 +87,15 @@ def key.end(+r: Result<&2, &2, String, T.Cut>) -> Result<&2, &2, String, String>
     case Done{T.Cut{v, rest}}:
       key.rest(String.is_empty(rest), v)
 
-def key(+tok: String) -> Result<&2, &2, String, String>:
-  match tok:
-    case SCon{Chr{34}, t}:
-      key.end(T.unq(t))
-    case _:
+def key.pick(+quoted: Bool, +tok: String) -> Result<&2, &2, String, String>:
+  match quoted:
+    case True{}:
+      key.end(T.unq(Hd.drop(tok)))
+    case False{}:
       Done{tok}
+
+def key(+tok: String) -> Result<&2, &2, String, String>:
+  key.pick(Hd.lead(tok, 34), tok)
 
 # Values of a delimited list, as an array chain.
 def values.cons(+r: Result<&2, &2, String, J.Json>, +rest: Result<&2, &2, String, J.Json>) -> Result<&2, &2, String, J.Json>:

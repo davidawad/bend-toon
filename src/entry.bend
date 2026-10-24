@@ -3,6 +3,7 @@ import ./json.bend as J
 import ./text.bend as T
 import ./split.bend as S
 import ./prim.bend as P
+import ./head.bend as Hd
 import ./hdr.bend as H
 
 # One logical line seen as an entry (spec sections 5, 6, 8): `key: value`,
@@ -41,15 +42,18 @@ def hdr.done(+k: Maybe<&2, String>, +r: Result<&2, &2, String, H.Hdr>) -> Result
     case Fail{e}:
       Fail{e}
 
+def quoted.pick(+colon: Bool, +brack: Bool, +k: String, +rest: String) -> Result<&2, &2, String, Ent>:
+  match colon brack:
+    case True{} _:
+      val(k, Hd.drop(rest))
+    case False{} True{}:
+      hdr.done(Some{k}, H.parse(rest))
+    case False{} False{}:
+      Done{ENot{}}
+
 # quoted key, then what follows its closing quote
 def quoted.rest(+k: String, +rest: String) -> Result<&2, &2, String, Ent>:
-  match rest:
-    case SCon{Chr{58}, v}:
-      val(k, v)
-    case SCon{Chr{91}, t}:
-      hdr.done(Some{k}, H.parse(rest))
-    case _:
-      Done{ENot{}}
+  quoted.pick(Hd.lead(rest, 58), Hd.lead(rest, 91), k, rest)
 
 def quoted(+r: Result<&2, &2, String, T.Cut>) -> Result<&2, &2, String, Ent>:
   match r:
@@ -102,10 +106,13 @@ def bare.pick(+strict: Bool, +bfirst: Bool, +nocolon: Bool, +text: String, +ci: 
 def bare(+strict: Bool, +text: String) -> Result<&2, &2, String, Ent>:
   bare.pick(strict, U32.is_lt(S.find(text, 91, 0), S.find(text, 58, 0)), U32.is_eq(S.find(text, 58, 0), S.none()), text, S.find(text, 58, 0), S.find(text, 91, 0))
 
+def parse.pick(+isq: Bool, +strict: Bool, +text: String) -> Result<&2, &2, String, Ent>:
+  match isq:
+    case True{}:
+      quoted(T.unq(Hd.drop(text)))
+    case False{}:
+      bare(strict, text)
+
 # Parse a line's content (after indentation or after a list hyphen).
 def parse(+strict: Bool, +text: String) -> Result<&2, &2, String, Ent>:
-  match text:
-    case SCon{Chr{34}, t}:
-      quoted(T.unq(t))
-    case _:
-      bare(strict, text)
+  parse.pick(Hd.lead(text, 34), strict, text)

@@ -1,6 +1,6 @@
 import Base
 import ../src/json.bend as J
-import ../src/jtext.bend as JT
+import ./support/jtext.bend as JT
 import ../src/encode.bend as E
 import ../src/decode.bend as D
 

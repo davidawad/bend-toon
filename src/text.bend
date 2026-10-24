@@ -1,9 +1,28 @@
 import Base
 import ./num.bend as N
+import ./head.bend as Hd
 
 # Strings and keys (spec section 7): escaping, quoting decisions, unescaping.
 
 # ---- characters --------------------------------------------------------------
+
+# A decoded value with the text that follows it.
+type Cut is Data:
+  Cut{val: String, rest: String}
+
+# Unescape state: normal, after a backslash, or reading the hex digits of a
+# \uXXXX escape (`k` digits to go, `acc` so far).
+type Us is Data:
+  UN{}
+  UB{}
+  UH{k: U32, acc: U32}
+
+# What one character does to the output.
+type Ek is Data:
+  EkChar{u: U32}
+  EkNone{}
+  EkEnd{}
+  EkErr{m: String}
 
 # The whitespace JavaScript's String.trim removes: what section 7.2 means by
 # leading or trailing whitespace.
@@ -93,11 +112,7 @@ def numeric_like(+s: String) -> Bool:
   is_some(N.split(s))
 
 def starts_hyphen(+s: String) -> Bool:
-  match s:
-    case SCon{Chr{45}, t}:
-      True{}
-    case _:
-      False{}
+  Hd.lead(s, 45)
 
 def reserved(+s: String) -> Bool:
   String.eq(s, "true") || String.eq(s, "false") || String.eq(s, "null")
@@ -139,10 +154,6 @@ def enc.key(+k: String) -> String:
 
 # ---- decoding ------------------------------------------------------------------
 
-# A decoded value with the text that follows it.
-type Cut is Data:
-  Cut{val: String, rest: String}
-
 def hex.pick(+dg: Bool, +lo: Bool, +up: Bool, +c: U32) -> Maybe<&2, U32>:
   match dg lo up:
     case True{} _ _:
@@ -158,18 +169,6 @@ def hex.val(+c: U32) -> Maybe<&2, U32>:
   hex.pick(U32.is_ge(c, 48) && U32.is_le(c, 57), U32.is_ge(c, 97) && U32.is_le(c, 102),
     U32.is_ge(c, 65) && U32.is_le(c, 70), c)
 
-
-# Four hex digits and the text after them.
-type Hx is Data:
-  Hx{n: U32, rest: String}
-
-def hex4.join(+a: Maybe<&2, U32>, +b: Maybe<&2, U32>, +c: Maybe<&2, U32>, +d: Maybe<&2, U32>, +t: String) -> Maybe<&2, Hx>:
-  match a b c d:
-    case Some{w} Some{x} Some{y} Some{z}:
-      Some{Hx{(((w << 12n) + (x << 8n)) + ((y << 4n) + z) : U32), t}}
-    case _ _ _ _:
-      None{}
-
 def push(+c: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
   match r:
     case Fail{e}:
@@ -177,52 +176,85 @@ def push(+c: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut
     case Done{Cut{v, rest}}:
       Done{Cut{SCon{Chr{c}, v}, rest}}
 
-def push.u.if(+bad: Bool, +n: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
-  match bad:
-    case True{}:
-      Fail{"surrogate code point in \\u escape"}
-    case False{}:
-      push(n, r)
-
-# A \uXXXX escape: surrogates are refused (section 7.1).
-def push.u(+n: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
-  push.u.if(U32.is_ge(n, 55296) && U32.is_le(n, 57343), n, r)
-
-def hex4.then(+m: Maybe<&2, Hx>, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
-  match m:
-    case None{}:
-      Fail{"invalid \\u escape"}
-    case Some{Hx{n, rest}}:
-      push.u(n, r)
-
 # The code point a simple escape letter stands for, or the sentinel 4294967295.
 def esc.code(+e: U32) -> U32:
   sel.u(U32.is_eq(e, 110), 10, sel.u(U32.is_eq(e, 114), 13, sel.u(U32.is_eq(e, 116), 9,
     sel.u(U32.is_eq(e, 34), 34, sel.u(U32.is_eq(e, 92), 92, 4294967295)))))
 
-def push.simple.if(+bad: Bool, +code: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
-  match bad:
+def us.pick(+b: Bool, +x: Us, +y: Us) -> Us:
+  match b:
     case True{}:
-      Fail{"invalid escape sequence"}
+      x
     case False{}:
-      push(code, r)
+      y
 
-def push.simple(+code: U32, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
-  push.simple.if(U32.is_eq(code, 4294967295), code, r)
+def hex.next(+m: Maybe<&2, U32>, +k: U32, +acc: U32) -> Us:
+  match m:
+    case None{}:
+      UN{}
+    case Some{h}:
+      us.pick(U32.is_eq(k, 1), UN{}, UH{(k - 1 : U32), (((acc << 4n) : U32) + h : U32)})
+
+# The state after reading character `c`.
+def next(+st: Us, +c: U32) -> Us:
+  match st:
+    case UN{}:
+      us.pick(U32.is_eq(c, 92), UB{}, UN{})
+    case UB{}:
+      us.pick(U32.is_eq(c, 117), UH{4, 0}, UN{})
+    case UH{k, acc}:
+      hex.next(hex.val(c), k, acc)
+
+def ek.pick(+b: Bool, +x: Ek, +y: Ek) -> Ek:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
+def simple.emit(+code: U32) -> Ek:
+  ek.pick(U32.is_eq(code, 4294967295), EkErr{"invalid escape sequence"}, EkChar{code})
+
+# A finished \uXXXX value: a surrogate is refused (section 7.1).
+def unit.emit(+n: U32) -> Ek:
+  ek.pick(U32.is_ge(n, 55296) && U32.is_le(n, 57343), EkErr{"surrogate code point in \\u escape"}, EkChar{n})
+
+def hex.emit(+m: Maybe<&2, U32>, +k: U32, +acc: U32) -> Ek:
+  match m:
+    case None{}:
+      EkErr{"invalid \\u escape"}
+    case Some{h}:
+      ek.pick(U32.is_eq(k, 1), unit.emit((((acc << 4n) : U32) + h : U32)), EkNone{})
+
+# What character `c` emits in state `st`.
+def emit(+st: Us, +c: U32) -> Ek:
+  match st:
+    case UN{}:
+      ek.pick(U32.is_eq(c, 34), EkEnd{}, ek.pick(U32.is_eq(c, 92), EkNone{}, EkChar{c}))
+    case UB{}:
+      ek.pick(U32.is_eq(c, 117), EkNone{}, simple.emit(esc.code(c)))
+    case UH{k, acc}:
+      hex.emit(hex.val(c), k, acc)
+
+def unq.k(+ek: Ek, +t: String, +r: Result<&2, &2, String, Cut>) -> Result<&2, &2, String, Cut>:
+  match ek:
+    case EkChar{u}:
+      push(u, r)
+    case EkNone{}:
+      r
+    case EkEnd{}:
+      Done{Cut{SNil{}, t}}
+    case EkErr{m}:
+      Fail{m}
+
+def unq.go(+s: String, +st: Us) -> Result<&2, &2, String, Cut>:
+  match s:
+    case SNil{}:
+      Fail{"unterminated string"}
+    case SCon{Chr{c}, t}:
+      unq.k(emit(st, c), t, unq.go(t, next(st, c)))
 
 # Unescape a quoted string whose opening quote is already consumed; the
 # result carries the text after the closing quote.
 def unq(+s: String) -> Result<&2, &2, String, Cut>:
-  match s:
-    case SNil{}:
-      Fail{"unterminated string"}
-    case SCon{Chr{34}, t}:
-      Done{Cut{SNil{}, t}}
-    case SCon{Chr{92}, SCon{Chr{117}, SCon{Chr{a}, SCon{Chr{b}, SCon{Chr{c}, SCon{Chr{d}, t}}}}}}:
-      hex4.then(hex4.join(hex.val(a), hex.val(b), hex.val(c), hex.val(d), t), unq(t))
-    case SCon{Chr{92}, SCon{Chr{e}, t}}:
-      push.simple(esc.code(e), unq(t))
-    case SCon{Chr{92}, SNil{}}:
-      Fail{"unterminated string"}
-    case SCon{Chr{c}, t}:
-      push(c, unq(t))
+  unq.go(s, UN{})
