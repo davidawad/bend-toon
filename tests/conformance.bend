@@ -7,7 +7,8 @@ import ../src/decode.bend as D
 # Conformance runner: bin/conformance <fixture.json>
 #
 # Reads one fixture file of the toon-format/spec test suite, runs every case
-# through the encoder or decoder, prints each failure and a last line
+# through the encoder or decoder (an encode case must also survive decode(encode(x))
+# under all three delimiters), prints each failure and a last line
 #   RESULT <file> pass=N fail=M skip=K
 # Exits 1 when a case fails. Cases that need an option this package does not
 # implement are skipped and counted (see README, Conformance).
@@ -97,11 +98,21 @@ def is_str(+j: J.Json, +s: String) -> Bool:
 
 # ---- one case -----------------------------------------------------------------------
 
+def fold.pick(+safe: Bool, +depth: U32) -> U32:
+  match safe:
+    case True{}:
+      depth
+    case False{}:
+      0
+
+def fold.of(+o: J.Json) -> U32:
+  fold.pick(is_str(get("keyFolding", o), "safe"), u32.of(get("flattenDepth", o), 4294967295))
+
 def enc.opts(+o: J.Json) -> E.EOpts:
-  E.EOpts{u32.of(get("indent", o), 2), delim.of(get("delimiter", o))}
+  E.EOpts{u32.of(get("indent", o), 2), delim.of(get("delimiter", o)), fold.of(o)}
 
 def dec.opts(+o: J.Json) -> D.DOpts:
-  D.DOpts{u32.of(get("indent", o), 2), flag(get("strict", o), True{})}
+  D.DOpts{u32.of(get("indent", o), 2), flag(get("strict", o), True{}), is_str(get("expandPaths", o), "safe")}
 
 def compare.pick(+same: Bool, +got: String, +want: String) -> Out:
   match same:
@@ -117,8 +128,32 @@ def compare.str(+got: String, +want: J.Json) -> Out:
     case _:
       OFail{"expected is not a string"}
 
+# Equal as JSON, or, when a tabular array wrote its rows in the first row's key
+# order (spec section 9.3), the same TOON text.
+def rt.ok(+r: Result<&2, &2, String, J.Json>, +input: J.Json, +o: E.EOpts) -> Bool:
+  match r:
+    case Done{v}:
+      J.eq(v, input) || String.eq(E.encode(v, o), E.encode(input, o))
+    case Fail{e}:
+      False{}
+
+# Encode with delimiter `d`, decode strictly, compare.
+def rt.with(+input: J.Json, +d: E.Delim, +indent: U32) -> Bool:
+  rt.ok(D.decode(E.encode(input, E.EOpts{indent, d, 0}), D.DOpts{indent, True{}, False{}}), input, E.EOpts{indent, d, 0})
+
+# The input survives encode then decode under all three delimiters.
+def roundtrip(+input: J.Json, +indent: U32) -> Bool:
+  rt.with(input, E.Comma{}, indent) && rt.with(input, E.Tab{}, indent) && rt.with(input, E.Pipe{}, indent)
+
+def both(+o: Out, +rt: Bool) -> Out:
+  match o rt:
+    case OPass{} False{}:
+      OFail{"round trip through encode and decode failed"}
+    case _ _:
+      o
+
 def encode.case(+t: J.Json) -> Out:
-  compare.str(E.encode(get("input", t), enc.opts(get("options", t))), get("expected", t))
+  both(compare.str(E.encode(get("input", t), enc.opts(get("options", t))), get("expected", t)), roundtrip(get("input", t), u32.of(get("indent", get("options", t)), 2)))
 
 def decode.ok(+same: Bool, +got: J.Json, +want: J.Json) -> Out:
   match same:
@@ -150,7 +185,7 @@ def decode.case(+t: J.Json) -> Out:
 
 # Options this package does not implement.
 def unsupported(+cat: String, +o: J.Json) -> Bool:
-  is_str(get("keyFolding", o), "safe") || is_str(get("expandPaths", o), "safe")
+  False{}
 
 def case.kind(+enc: Bool, +t: J.Json) -> Out:
   match enc:
