@@ -37,22 +37,25 @@ type Delim is Data:
   Tab{}
   Pipe{}
 
-# Spaces per indent level, and the document delimiter. Key folding is off.
+# Spaces per indent level, the document delimiter, and key folding: 0 is off
+# (the default), n of 2 or more folds chains of single-key objects into dotted
+# keys of at most n segments (`a.b.c: 1`), 4294967295 folds whole chains.
 type EncodeOpts is Data:
-  EncodeOpts{indent: U32, delim: Delim}
+  EncodeOpts{indent: U32, delim: Delim, fold: U32}
 
-# Spaces per indent level (used to compute line depth), and strict mode
-# (counts, indentation, blank lines, duplicate keys).
+# Spaces per indent level (used to compute line depth), strict mode (counts,
+# indentation, blank lines, duplicate keys), and path expansion (an unquoted
+# key `a.b.c` becomes nested objects; quoted keys stay literal).
 type DecodeOpts is Data:
-  DecodeOpts{indent: U32, strict: Bool}
+  DecodeOpts{indent: U32, strict: Bool, expand: Bool}
 
 # Indent 2, comma.
 def encode_default() -> EncodeOpts:
-  EncodeOpts{2, Comma{}}
+  EncodeOpts{2, Comma{}, 0}
 
 # Indent 2, strict.
 def decode_default() -> DecodeOpts:
-  DecodeOpts{2, True{}}
+  DecodeOpts{2, True{}, False{}}
 
 # ---- conversion to and from the codec's own value type -----------------------
 
@@ -120,14 +123,14 @@ def inner_delim(d: Delim) -> Enc.Delim:
 # (a JNum whose text is not a number) encode as null.
 def encode(j: Json, o: EncodeOpts) -> String:
   match o:
-    case EncodeOpts{indent, d}:
-      Enc.encode(to_inner(j), Enc.EOpts{indent, inner_delim(d)})
+    case EncodeOpts{indent, d, fold}:
+      Enc.encode(to_inner(j), Enc.EOpts{indent, inner_delim(d), fold})
 
 # The value of TOON text, or the first error with its line number.
 def decode(s: String, o: DecodeOpts) -> Result<&2, &2, String, Json>:
   match o:
-    case DecodeOpts{indent, strict}:
-      of_inner_result(Dec.decode(s, Dec.DOpts{indent, strict}))
+    case DecodeOpts{indent, strict, expand}:
+      of_inner_result(Dec.decode(s, Dec.DOpts{indent, strict, expand}))
 
 # JSON-model equality: numbers by value (`1.0` equals `1`), objects by ordered
 # keys.
