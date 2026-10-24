@@ -6,7 +6,8 @@
 #   hash  = "0x" + first 32 hex digits of
 #           sha256 of the concatenation, over the paths sorted bytewise, of
 #           "<sha256 of the file> <path>\n"
-# usage: sh scripts/pkg-hash [entry.bend]    (run from the repository root)
+# usage: sh scripts/pkg-hash [entry.bend]    (run from the repository root;
+#        VERBOSE=1 also lists the published files)
 set -eu
 entry=${1:-main.bend}
 work=$(mktemp)
@@ -54,6 +55,7 @@ count=$(wc -l < "$work.lines" | tr -d ' ')
 bytes=0
 for p in $(cut -d' ' -f2 "$work.lines"); do bytes=$((bytes + $(wc -c < "$p" | tr -d ' '))); done
 h=$(shasum -a 256 "$work.lines" | cut -c1-32)
+if [ "${VERBOSE:-}" = 1 ]; then cut -d' ' -f2 "$work.lines"; fi
 trash "$work.lines" 2>/dev/null || true
 echo "files: $count, bytes: $bytes"
 echo "0x$h"
