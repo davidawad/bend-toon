@@ -32,14 +32,14 @@ without publishing: `sh scripts/pkg-hash` (it mirrors bend 2.0.38's
 sorted, first 32 hex digits; checked against three packages cached in
 `~/.bend/lib`, whose directory names are their hashes).
 
-At the commit that last touched `main.bend`, `src/` or `LICENSE` (`a2a821e`):
+At the commit that last touched `main.bend`, `src/` or `LICENSE` (`006f534`):
 
 ```
-files: 18, bytes: 92856
-0x6c540016ee6a6235bbe7ce97d06ff2ba
+files: 18, bytes: 92394
+0x90abee21a458e6c90fc6c7b9e98c5b00
 ```
 
-`publishing 18 files, 92856 bytes, as 0x6c540016ee6a6235bbe7ce97d06ff2ba` must
+`publishing 18 files, 92394 bytes, as 0x90abee21a458e6c90fc6c7b9e98c5b00` must
 show the same hash. If it does not, a published file changed since this was
 written: rerun `sh scripts/pkg-hash` and trust that instead. (Edits to
 README.md, docs/, tests/, LAWS.bend, PROOF.bend and `src/spec.bend` do not
