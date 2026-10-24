@@ -8,7 +8,7 @@ def dec(t: String) -> Result<&2, &2, String, J.Json>:
   D.decode(t, D.ddefaults())
 
 def lax(t: String) -> Result<&2, &2, String, J.Json>:
-  D.decode(t, D.DOpts{2, False{}})
+  D.decode(t, D.DOpts{2, False{}, False{}})
 
 def failed(r: Result<&2, &2, String, J.Json>) -> Bool:
   match r:

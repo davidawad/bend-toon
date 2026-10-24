@@ -32,3 +32,30 @@ def at_least(+s: String, +n: Nat) -> Bool:
       False{}
     case SCon{h, t} 1n+p:
       at_least(t, p)
+
+# ---- quoted-key marker -------------------------------------------------------
+#
+# The decoder prefixes a key that was written in quotes with one character that
+# no text holds (code 4294967295, beyond U+10FFFF), so path expansion can tell
+# `"a.b"` (literal) from `a.b` (a path). Markers never leave the decoder.
+
+def mark() -> String:
+  SCon{Chr{4294967295}, SNil{}}
+
+def marked(+k: String) -> Bool:
+  lead(k, 4294967295)
+
+def unmark.pick(+m: Bool, +k: String) -> String:
+  match m:
+    case True{}:
+      drop(k)
+    case False{}:
+      k
+
+# The key without its marker.
+def unmark(+k: String) -> String:
+  unmark.pick(marked(k), k)
+
+# Same key, ignoring markers.
+def keq(+a: String, +b: String) -> Bool:
+  String.eq(unmark(a), unmark(b))

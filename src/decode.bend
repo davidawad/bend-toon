@@ -7,16 +7,18 @@ import ./entry.bend as E
 import ./dline.bend as D
 import ./frame.bend as F
 import ./step.bend as T
+import ./expand.bend as X
 import ./head.bend as Hd
 
 # Decoder (spec sections 4, 5, 12 to 14): lines to a Json value.
 
-# Decoder options: spaces per indent level and strict mode.
+# Decoder options: spaces per indent level, strict mode, and path expansion
+# (section 13.4: unquoted dotted keys become nested objects).
 type DOpts is Data:
-  DOpts{indent: U32, strict: Bool}
+  DOpts{indent: U32, strict: Bool, expand: Bool}
 
 def ddefaults() -> DOpts:
-  DOpts{2, True{}}
+  DOpts{2, True{}, False{}}
 
 # Apply every line in order, stopping at the first error.
 def fold(+ls: List<&2, D.DL>, +sr: Result<&2, &2, String, F.St>, +strict: Bool) -> Result<&2, &2, String, F.St>:
@@ -150,8 +152,23 @@ def run(+r: Result<&2, &2, String, List<&2, D.DL>>, +strict: Bool) -> Result<&2,
     case Done{ls}:
       start(ls, strict)
 
+def post.pick(+expand: Bool, +strict: Bool, +v: J.Json) -> Result<&2, &2, String, J.Json>:
+  match expand:
+    case True{}:
+      X.expand(v, strict)
+    case False{}:
+      Done{X.strip(v)}
+
+# Quoted-key markers come off; with path expansion the dotted keys unfold.
+def post(+expand: Bool, +strict: Bool, +r: Result<&2, &2, String, J.Json>) -> Result<&2, &2, String, J.Json>:
+  match r:
+    case Fail{e}:
+      Fail{e}
+    case Done{v}:
+      post.pick(expand, strict, v)
+
 # Decode TOON text.
 def decode(+src: String, +o: DOpts) -> Result<&2, &2, String, J.Json>:
   match o:
-    case DOpts{indent, strict}:
-      run(D.prep(src, indent, strict), strict)
+    case DOpts{indent, strict, expand}:
+      post(expand, strict, run(D.prep(src, indent, strict), strict))

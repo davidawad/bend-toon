@@ -1,6 +1,7 @@
 import Base
 import ./json.bend as J
 import ./split.bend as S
+import ./head.bend as Hd
 
 # The decoder's explicit stack of open containers (an object, a list array or
 # a tabular array), with the operations that grow, close and unwind it.
@@ -71,7 +72,7 @@ def rev.fields(+fs: J.Json, +acc: J.Json) -> J.Json:
 def has_key(+k: String, +fs: J.Json) -> Bool:
   match fs:
     case J.JField{k2, v, t}:
-      String.eq(k, k2) || has_key(k, t)
+      Hd.keq(k, k2) || has_key(k, t)
     case _:
       False{}
 
@@ -86,7 +87,7 @@ def set.pick(+hit: Bool, +k: String, +v: J.Json, +old: J.Json, +rest: J.Json, +t
 def set(+k: String, +v: J.Json, +fs: J.Json) -> J.Json:
   match fs:
     case J.JField{k2, old, t}:
-      set.pick(String.eq(k, k2), k2, v, old, set(k, v, t), t)
+      set.pick(Hd.keq(k, k2), k2, v, old, set(k, v, t), t)
     case _:
       fs
 

@@ -21,6 +21,14 @@ def bad(+m: String) -> Result<&2, &2, String, Hdr>:
 
 # A field name: quoted names are unescaped; a bare name that holds another
 # delimiter than the active one is a delimiter mismatch.
+# A quoted field name keeps its marker (see head.bend).
+def mark.name(+r: Result<&2, &2, String, String>) -> Result<&2, &2, String, String>:
+  match r:
+    case Done{k}:
+      Done{Hd.mark() ++ k}
+    case Fail{e}:
+      Fail{e}
+
 def name.ok(+bare: Bool, +bad_delim: Bool, +tok: String) -> Result<&2, &2, String, String>:
   match bare bad_delim:
     case True{} True{}:
@@ -28,7 +36,7 @@ def name.ok(+bare: Bool, +bad_delim: Bool, +tok: String) -> Result<&2, &2, Strin
     case True{} False{}:
       Done{tok}
     case False{} _:
-      P.key(tok)
+      mark.name(P.key(tok))
 
 def other_delim(+c: U32, +d: U32) -> Bool:
   (U32.is_eq(c, 44) || U32.is_eq(c, 9) || U32.is_eq(c, 124)) && Bool.not(U32.is_eq(c, d))

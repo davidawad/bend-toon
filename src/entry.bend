@@ -45,9 +45,9 @@ def hdr.done(+k: Maybe<&2, String>, +r: Result<&2, &2, String, H.Hdr>) -> Result
 def quoted.pick(+colon: Bool, +brack: Bool, +k: String, +rest: String) -> Result<&2, &2, String, Ent>:
   match colon brack:
     case True{} _:
-      val(k, Hd.drop(rest))
+      val(Hd.mark() ++ k, Hd.drop(rest))
     case False{} True{}:
-      hdr.done(Some{k}, H.parse(rest))
+      hdr.done(Some{Hd.mark() ++ k}, H.parse(rest))
     case False{} False{}:
       Done{ENot{}}
 

@@ -47,7 +47,7 @@ def rt(+v: J.Json) -> Result<&2, &2, String, J.Json>:
 
 # The same with delimiter `d` and indent `i`.
 def rt.with(+v: J.Json, +d: E.Delim, +i: U32) -> Result<&2, &2, String, J.Json>:
-  D.decode(E.encode(v, E.EOpts{i, d}), D.DOpts{i, True{}})
+  D.decode(E.encode(v, E.EOpts{i, d, 0}), D.DOpts{i, True{}, False{}})
 
 # ---- a finite universe of values, for laws quantified over every member ----------
 
