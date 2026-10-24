@@ -1,0 +1,24 @@
+#!/bin/sh
+# Type-check one Bend file and run its ground equations, bounded by a timeout.
+# usage: scripts/check-file <bend> <file.bend>
+bend=$1
+f=$2
+limit=${CHECK_FILE_TIMEOUT:-300}
+# A check that does not finish in $limit seconds fails loudly, naming the file:
+# a hung equation must never stall CI silently.
+bounded() {
+  if command -v timeout > /dev/null 2>&1; then
+    timeout "$limit" "$@"
+  else
+    perl -e 'alarm shift; exec @ARGV' "$limit" "$@"
+  fi
+}
+rc=0
+out=$(bounded nice -n 19 "$bend" "$f" --check-only 2>&1) || rc=$?
+[ "$rc" = 0 ] && exit 0
+if [ "$rc" = 124 ] || [ "$rc" = 142 ] || [ "$rc" = 137 ]; then
+  echo "TIMEOUT: $f did not check within ${limit}s" >&2
+  exit 1
+fi
+printf '%s\n' "$out" >&2
+exit 1
