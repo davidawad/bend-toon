@@ -145,10 +145,12 @@ string and `encode` writes `null`.
 | decode: path-expansion, primitives, root-form, validation-errors, whitespace | 12 + 28 + 5 + 25 + 6 |
 
 Fixtures that cannot be passed: none. The runner (`tests/conformance.bend`,
-compiled to `bin/conformance`) also checks, for every encode case, that
-`decode(encode(input))` equals `input` under all three delimiters (or, where a
-tabular array reordered keys, re-encodes to the same text). The runner reads the
-fixture JSON with a small lenient JSON parser in `tests/support/jtext.bend`.
+compiled to `bin/conformance`) also round-trips every value it meets: the input
+of each encode case and the expected value of each decode case must satisfy
+`decode(encode(v)) == v` under all three delimiters (or, where a tabular array
+reordered keys, re-encode to the same text). The runner reads the fixture JSON
+with a small lenient JSON parser in `tests/support/jtext.bend` (test support,
+not part of the package; it is slow on large files).
 
 Not covered by the fixtures and decided here (the spec leaves them to the
 implementation):
@@ -162,6 +164,13 @@ implementation):
   points, so the encoder never sees a lone surrogate.
 - The tabular row / key-value disambiguation (section 9.3) is applied to a line
   at row depth; a key-value line at row depth is an error.
+
+### Speed
+
+Native build (`bend file.bend -o out`), Apple silicon: decoding and then
+re-encoding a 2,000-row table (99 KB of TOON, six columns) takes about 0.04 s.
+Both directions are linear in the size of the text; nothing here has been
+tuned further.
 
 ## Laws and proofs
 

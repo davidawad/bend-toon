@@ -181,7 +181,7 @@ def decode.text(+input: J.Json, +o: J.Json, +should_error: Bool, +want: J.Json) 
       OFail{"input is not a string"}
 
 def decode.case(+t: J.Json) -> Out:
-  decode.text(get("input", t), get("options", t), flag(get("shouldError", t), False{}), get("expected", t))
+  both(decode.text(get("input", t), get("options", t), flag(get("shouldError", t), False{}), get("expected", t)), flag(get("shouldError", t), False{}) || roundtrip(get("expected", t), 2))
 
 # Options this package does not implement.
 def unsupported(+cat: String, +o: J.Json) -> Bool:
