@@ -12,13 +12,8 @@ def sel.u(+b: Bool, +x: U32, +y: U32) -> U32:
       y
 
 def qnext.pick(+st: U32, +quote: Bool, +bslash: Bool) -> U32:
-  match st:
-    case 0:
-      sel.u(quote, 1, 0)
-    case 1:
-      sel.u(bslash, 2, sel.u(quote, 0, 1))
-    case _:
-      1
+  sel.u(U32.is_eq(st, 0), sel.u(quote, 1, 0),
+  sel.u(U32.is_eq(st, 1), sel.u(bslash, 2, sel.u(quote, 0, 1)), 1))
 
 def qnext(+st: U32, +c: U32) -> U32:
   qnext.pick(st, U32.is_eq(c, 34), U32.is_eq(c, 92))
