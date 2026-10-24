@@ -8,10 +8,10 @@ def enc(j: J.Json) -> String:
   E.encode(j, E.defaults())
 
 def enc.pipe(j: J.Json) -> String:
-  E.encode(j, E.EOpts{2, E.Pipe{}})
+  E.encode(j, E.EOpts{2, E.Pipe{}, 0})
 
 def enc.tab(j: J.Json) -> String:
-  E.encode(j, E.EOpts{2, E.Tab{}})
+  E.encode(j, E.EOpts{2, E.Tab{}, 0})
 
 def n(t: String) -> J.Json:
   J.JNum{t}
@@ -97,7 +97,7 @@ def t.delim_tab() -> {enc.tab(J.obj([("t", J.arr([s("a"), s("b,c")]))])) == "t[2
 def t.delim_field_value() -> {enc.pipe(J.obj([("note", s("a,b"))])) == "note: a,b" : String}:
   {==}
 
-def t.indent4() -> {E.encode(J.obj([("a", J.obj([("b", n("1"))]))]), E.EOpts{4, E.Comma{}}) == "a:\n    b: 1" : String}:
+def t.indent4() -> {E.encode(J.obj([("a", J.obj([("b", n("1"))]))]), E.EOpts{4, E.Comma{}, 0}) == "a:\n    b: 1" : String}:
   {==}
 
 def t.key_quoted() -> {enc(J.obj([("order:id", n("7"))])) == "\"order:id\": 7" : String}:

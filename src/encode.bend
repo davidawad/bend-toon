@@ -3,6 +3,7 @@ import ./json.bend as J
 import ./num.bend as N
 import ./text.bend as T
 import ./rep.bend as R
+import ./fold.bend as F
 
 # Encoder (spec sections 2, 3, 6 to 12), without key folding.
 
@@ -11,12 +12,14 @@ type Delim is Data:
   Tab{}
   Pipe{}
 
-# Encoder options: spaces per indent level and the document delimiter.
+# Encoder options: spaces per indent level, the document delimiter, and key
+# folding (section 13.4): 0 is off, n of 2 or more folds chains of single-key
+# objects into dotted keys of at most n segments, 4294967295 folds whole chains.
 type EOpts is Data:
-  EOpts{indent: U32, delim: Delim}
+  EOpts{indent: U32, delim: Delim, fold: U32}
 
 def defaults() -> EOpts:
-  EOpts{2, Comma{}}
+  EOpts{2, Comma{}, 0}
 
 # The delimiter as a code point.
 def code(+d: Delim) -> U32:
@@ -274,5 +277,5 @@ def enc(j: J.Json, +elem: Bool, +d: Delim) -> R.Rep:
 # Encode a value as TOON text.
 def encode(j: J.Json, o: EOpts) -> String:
   match o:
-    case EOpts{indent, d}:
-      R.render(indent, R.root(enc(j, False{}, d)))
+    case EOpts{indent, d, fold}:
+      R.render(indent, R.root(enc(F.fold(j, fold), False{}, d)))
