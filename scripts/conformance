@@ -1,16 +1,24 @@
 #!/bin/sh
 # Run every vendored spec fixture through bin/conformance and report totals.
 # usage: scripts/conformance [bin/conformance]
-# Prints one RESULT line per fixture file, then
+# Prints each failure and one RESULT line per fixture file, then
 #   conformance: P/T passed, F failed, S skipped
-# and exits 1 when any case fails.
+# and exits 1 when any case fails or a fixture does not report.
 bin=${1:-bin/conformance}
+limit=${CONFORMANCE_TIMEOUT:-300}
+bounded() {
+  if command -v timeout > /dev/null 2>&1; then
+    timeout "$limit" "$@"
+  else
+    perl -e 'alarm shift; exec @ARGV' "$limit" "$@"
+  fi
+}
 pass=0
 fail=0
 skip=0
 status=0
 for f in tests/fixtures/encode/*.json tests/fixtures/decode/*.json; do
-  out=$(bounded() { if command -v timeout > /dev/null 2>&1; then timeout 300 "$@"; else perl -e 'alarm shift; exec @ARGV' 300 "$@"; fi; }; bounded "$bin" "$f") || status=1
+  out=$(bounded "$bin" "$f") || status=1
   printf '%s\n' "$out" | grep -E '^(FAIL|RESULT)'
   line=$(printf '%s\n' "$out" | grep '^RESULT ' | tail -n 1)
   p=$(printf '%s\n' "$line" | sed -n 's/.* pass=\([0-9]*\).*/\1/p')
