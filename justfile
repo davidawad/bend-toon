@@ -1,7 +1,7 @@
 set shell := ["sh", "-eu", "-c"]
 
 bend := env_var_or_default("BEND", "bend")
-blr_dir := env_var_or_default("BLR_DIR", env_var("HOME") + "/projects/Personal/bend/bend-lint-rules")
+blr_dir := env_var_or_default("BLR_DIR", justfile_directory() + "/../bend-lint-rules")
 
 # List the recipes.
 default:

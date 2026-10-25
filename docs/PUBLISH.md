@@ -1,6 +1,6 @@
 # Publishing bend-toon to BendHub
 
-Nothing here has been run. A publish is public and permanent under BendHub's
+Nothing here has been run yet. A publish is public and permanent under BendHub's
 terms (https://bend-lang.com/bendai/terms#s18), and `bend main.bend --publish
 <name>@<version>` needs a login only David can do, so it waits for him.
 
@@ -32,21 +32,21 @@ without publishing: `sh scripts/pkg-hash` (it mirrors bend 2.0.38's
 sorted, first 32 hex digits; checked against three packages cached in
 `~/.bend/lib`, whose directory names are their hashes).
 
-At the commit that last touched `main.bend`, `src/` or `LICENSE` (`006f534`):
+At the release commit (the GPL `LICENSE` change; `main.bend` and `src/` are unchanged since `006f534`):
 
 ```
-files: 18, bytes: 92394
-0x90abee21a458e6c90fc6c7b9e98c5b00
+files: 18, bytes: 126569
+0x12996a27cbeef5e5ba1e8cd909be0e05
 ```
 
-`publishing 18 files, 92394 bytes, as 0x90abee21a458e6c90fc6c7b9e98c5b00` must
+`publishing 18 files, 126569 bytes, as 0x12996a27cbeef5e5ba1e8cd909be0e05` must
 show the same hash. If it does not, a published file changed since this was
 written: rerun `sh scripts/pkg-hash` and trust that instead. (Edits to
 README.md, docs/, tests/, LAWS.bend, PROOF.bend and `src/spec.bend` do not
 change the hash: `main.bend` does not import them.)
 
-The 18 files: `main.bend`, `LICENSE` (MIT; the first line is
-`SPDX-License-Identifier: MIT`, which bend reads as the package license) and
+The 18 files: `main.bend`, `LICENSE` (GPL-3.0-or-later; the first line is
+`SPDX-License-Identifier: GPL-3.0-or-later`, which bend reads as the package license) and
 `src/` `decode`, `dline`, `encode`, `entry`, `expand`, `fold`, `frame`, `hdr`,
 `head`, `json`, `num`, `prim`, `rep`, `split`, `step`, `text` (`.bend`).
 

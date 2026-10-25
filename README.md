@@ -1,5 +1,11 @@
 # bend-toon
 
+Encode JSON-shaped data as TOON text, and decode TOON text back, from Bend 2 code.
+
+![bend-toon encodes a two-row user table as TOON and decodes it back to the same value](docs/showcase/encode-sample.png)
+
+More images and the commands that reproduce them: [docs/showcase.md](docs/showcase.md).
+
 [TOON](https://github.com/toon-format/spec) (Token-Oriented Object Notation,
 spec v3.3) encoder and decoder for Bend 2, written in Bend.
 
@@ -220,10 +226,10 @@ just conformance   # build bin/conformance and run the 389 spec cases
 sh scripts/pkg-hash   # the hash `bend main.bend --publish` would print, computed without publishing
 ```
 
-Every `bend --check-only` runs under a 300 s timeout (`scripts/check-file`). On a
-host that guards heavy builds, prefix with `NICE_PREFIX`
-and `nice -n 19`. `just lint` needs `bend-lint-rules` checked out and set up
-(`BLR_DIR`, default `../bend-lint-rules`).
+Every `bend --check-only` runs under a 300 s timeout (`scripts/check-file`).
+Builds are heavy, so prefix with `nice -n 19` on a shared machine. `just lint`
+needs a checkout of `bend-lint-rules` that has been set up (`BLR_DIR`, default
+`../bend-lint-rules`); without one the lint step is skipped.
 
 Layout:
 
@@ -256,5 +262,6 @@ their callers (the repo keeps them sorted that way).
 
 ## License
 
-MIT, see `LICENSE`. The fixtures under `tests/fixtures` are MIT, copyright
-Johann Schopplich and contributors (`tests/fixtures/LICENSE`).
+GPL-3.0-or-later, see `LICENSE`. The fixtures under `tests/fixtures` are MIT,
+copyright Johann Schopplich and contributors (`tests/fixtures/LICENSE`); they
+are test data and are not part of the published package.
