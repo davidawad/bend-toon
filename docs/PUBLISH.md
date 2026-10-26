@@ -6,12 +6,14 @@ terms (https://bend-lang.com/bendai/terms#s18), and `bend main.bend --publish
 
 ## The command
 
+The BendHub name is `bend-toon-codec`: BendHub auctions names shorter than 12 characters, so `bend-toon` is refused.
+
 From the repository root, on a clean checkout of the commit to release, after
 `just ci` is green:
 
 ```
 bend login                                   # once; opens a browser
-bend main.bend --publish bend-toon@0.1.0.0
+bend main.bend --publish bend-toon-codec@0.1.0.0
 ```
 
 The version has **four** numbers. bend 2.0.38 reads `<name>@<version>` with the
@@ -20,7 +22,7 @@ pattern `^([a-z][a-z0-9-]{0,63})@(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){3}$`, so the
 `0.1.0.0` is the same release.
 
 Without a name, `bend main.bend --publish` publishes by hash only and the
-package is imported as `0x<hash>/main.bend`; `bend link bend-toon@0.1.0.0 0x<hash>`
+package is imported as `0x<hash>/main.bend`; `bend link bend-toon-codec@0.1.0.0 0x<hash>`
 names it afterwards.
 
 ## What it prints, and the hash to expect
@@ -52,11 +54,11 @@ The 18 files: `main.bend`, `LICENSE` (GPL-3.0-or-later; the first line is
 
 ## After publishing
 
-bend prints `import bend-toon@0.1.0.0/main.bend as Main` (use any alias; the
+bend prints `import bend-toon-codec@0.1.0.0/main.bend as Main` (use any alias; the
 README uses `Toon`). To use it from cswap-bend:
 
 ```
-import bend-toon@0.1.0.0/main.bend as Toon
+import bend-toon-codec@0.1.0.0/main.bend as Toon
 ```
 
 and convert cswap's `Json` with the nine-arm map in the README ("The value

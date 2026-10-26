@@ -26,7 +26,7 @@ conformance suite pass (see [Conformance](#conformance)).
 ## Usage
 
 ```python
-import ./main.bend as Toon      # or: import bend-toon@0.1.0.0/main.bend as Toon
+import ./main.bend as Toon      # or: import bend-toon-codec@0.1.0.0/main.bend as Toon
 
 def doc() -> Toon.Json:
   Toon.JObj{Toon.JField{"users", Toon.JArr{Toon.JCons{
@@ -42,6 +42,9 @@ def back() -> Result<&2, &2, String, Toon.Json>:
 
 `Toon.decode` answers `Done{value}` or `Fail{message}`; messages start with the
 line number (`line 3: duplicate key`).
+
+On BendHub the package is named `bend-toon-codec`, not `bend-toon`, because
+BendHub auctions names shorter than 12 characters.
 
 ### API (everything is in `main.bend`)
 
